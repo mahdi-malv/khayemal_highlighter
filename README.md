@@ -19,6 +19,9 @@ A Chrome extension that highlights X (Twitter) users from a JSON list by adding 
    - **From File**: Click "Choose File", select your JSON file, then click "Load from File"
 3. The extension will automatically highlight matching users on x.com with a 🦀 emoji
 
+> [!tip]
+> Sample json by [anonymouse_opiran](https://www.instagram.com/p/DTpMdPkFe2x/) can be found [here](https://raw.githubusercontent.com/goldenowlosint/Islamic-Republic-Influence-Networks/refs/heads/main/Data/IR-Network.json)
+
 ## JSON Format
 
 The JSON file should be an array of user objects. Each object must have a `username` field:
