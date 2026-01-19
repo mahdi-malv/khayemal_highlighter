@@ -23,22 +23,30 @@ function markHighlighted(element) {
   element.setAttribute('data-x-highlighted', 'true');
 }
 
-// Extract username from various X.com DOM structures
+// Extract username from X.com username display elements only
 function extractUsername(element) {
-  // Try to find username in common X.com structures
-  // Method 1: Check href attribute (e.g., <a href="/username">)
-  const link = element.closest('a[href^="/"]');
-  if (link) {
-    const href = link.getAttribute('href');
-    const match = href.match(/^\/([^\/\?]+)/);
-    if (match && match[1] && match[1] !== 'home' && match[1] !== 'explore' && match[1] !== 'notifications' && match[1] !== 'messages') {
-      return match[1].toLowerCase();
-    }
-  }
-
-  // Method 2: Check for data-testid="User-Name" and look for @username pattern
+  // Only target the actual username display, not mentions in content
+  
+  // Method 1: Check for data-testid="User-Name" - this is the username display in X's UI
   const userNameElement = element.closest('[data-testid="User-Name"]');
   if (userNameElement) {
+    // Find the link within User-Name that contains the actual username
+    const link = userNameElement.querySelector('a[href^="/"]');
+    if (link) {
+      const href = link.getAttribute('href');
+      const match = href.match(/^\/([^\/\?]+)/);
+      if (match && match[1] && 
+          match[1] !== 'home' && 
+          match[1] !== 'explore' && 
+          match[1] !== 'notifications' && 
+          match[1] !== 'messages' &&
+          match[1] !== 'i' &&
+          !match[1].startsWith('search') &&
+          !match[1].startsWith('hashtag')) {
+        return match[1].toLowerCase();
+      }
+    }
+    // Fallback: extract from text content of User-Name element
     const text = userNameElement.textContent || '';
     const atMatch = text.match(/@(\w+)/);
     if (atMatch) {
@@ -46,18 +54,30 @@ function extractUsername(element) {
     }
   }
 
-  // Method 3: Look for @username in text content
-  const text = element.textContent || '';
-  const atMatch = text.match(/@(\w+)/);
-  if (atMatch) {
-    return atMatch[1].toLowerCase();
-  }
-
-  // Method 4: Check aria-label for username
-  const ariaLabel = element.getAttribute('aria-label') || element.closest('[aria-label]')?.getAttribute('aria-label') || '';
-  const ariaMatch = ariaLabel.match(/@(\w+)/);
-  if (ariaMatch) {
-    return ariaMatch[1].toLowerCase();
+  // Method 2: Check if element is a profile link in author/header context
+  // Only process links that are in article headers or user card contexts
+  const link = element.closest('a[href^="/"]');
+  if (link) {
+    // Check if this link is in a user header/author section, not in tweet content
+    const isInAuthorSection = link.closest('article')?.querySelector('[data-testid="User-Name"]') ||
+                              link.closest('[data-testid="UserCell"]') ||
+                              link.closest('[data-testid="User-Names"]') ||
+                              link.closest('div[role="group"]')?.querySelector('[data-testid="User-Name"]');
+    
+    if (isInAuthorSection) {
+      const href = link.getAttribute('href');
+      const match = href.match(/^\/([^\/\?]+)/);
+      if (match && match[1] && 
+          match[1] !== 'home' && 
+          match[1] !== 'explore' && 
+          match[1] !== 'notifications' && 
+          match[1] !== 'messages' &&
+          match[1] !== 'i' &&
+          !match[1].startsWith('search') &&
+          !match[1].startsWith('hashtag')) {
+        return match[1].toLowerCase();
+      }
+    }
   }
 
   return null;
@@ -109,15 +129,7 @@ function addEmoji(element) {
   markHighlighted(element);
 }
 
-// Process a single element
-function processElement(element) {
-  const username = extractUsername(element);
-  if (username && usernameSet.has(username)) {
-    addEmoji(element);
-  }
-}
-
-// Process all username elements on the page
+// Process all username display elements on the page
 function processPage() {
   if (isProcessing || usernameSet.size === 0) {
     return;
@@ -125,35 +137,38 @@ function processPage() {
 
   isProcessing = true;
 
-  // Strategy 1: Find all links that look like user profiles
-  const userLinks = document.querySelectorAll('a[href^="/"][href*="/"]');
-  userLinks.forEach(link => {
-    const href = link.getAttribute('href');
-    if (href && !href.includes('/home') && !href.includes('/explore') && !href.includes('/notifications') && !href.includes('/messages') && !href.includes('/i/')) {
+  // Only target User-Name elements - these are the actual username displays
+  // This ensures we only highlight the username, not mentions in tweet content
+  const userNameElements = document.querySelectorAll('[data-testid="User-Name"]');
+  userNameElements.forEach(element => {
+    if (isHighlighted(element)) {
+      return;
+    }
+
+    // Find the link or span containing the username within User-Name
+    const link = element.querySelector('a[href^="/"]');
+    if (link) {
+      const href = link.getAttribute('href');
       const match = href.match(/^\/([^\/\?]+)/);
-      if (match && match[1]) {
+      if (match && match[1] && 
+          match[1] !== 'home' && 
+          match[1] !== 'explore' && 
+          match[1] !== 'notifications' && 
+          match[1] !== 'messages' &&
+          match[1] !== 'i' &&
+          !match[1].startsWith('search') &&
+          !match[1].startsWith('hashtag')) {
         const username = match[1].toLowerCase();
         if (usernameSet.has(username)) {
-          // Find the text element within this link
+          // Add emoji to the link or its text content span
           const textElement = link.querySelector('span') || link;
           if (!isHighlighted(textElement)) {
             addEmoji(textElement);
           }
         }
       }
-    }
-  });
-
-  // Strategy 2: Find elements with User-Name testid
-  const userNameElements = document.querySelectorAll('[data-testid="User-Name"]');
-  userNameElements.forEach(element => {
-    processElement(element);
-  });
-
-  // Strategy 3: Find all spans/elements containing @username
-  const allElements = document.querySelectorAll('span, div, a');
-  allElements.forEach(element => {
-    if (!isHighlighted(element)) {
+    } else {
+      // Fallback: extract username from text and add emoji to the element itself
       const username = extractUsername(element);
       if (username && usernameSet.has(username)) {
         addEmoji(element);
