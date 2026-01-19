@@ -9,26 +9,7 @@ A Chrome extension that highlights X (Twitter) users from a JSON list by adding 
 3. Click "Load unpacked"
 4. Select the `x_highlighter` directory
 
-## Setting Up Icons
-
-Before loading the extension, you need to create the icon files:
-
-### Option 1: Using the HTML Generator (Recommended)
-1. Open `generate_icon.html` in your browser
-2. Click the download buttons for each icon size
-3. Save the files to the `icons/` directory as:
-   - `icon16.png`
-   - `icon48.png`
-   - `icon128.png`
-
-### Option 2: Using Python (if PIL is installed)
-```bash
-pip install Pillow
-python3 generate_icon.py
-```
-
-### Option 3: Manual Creation
-Create three PNG files (16x16, 48x48, 128x128) with a black background and white crab emoji (🦀) and save them in the `icons/` directory.
+<img src="screenshot.png" width="300" />
 
 ## Usage
 
